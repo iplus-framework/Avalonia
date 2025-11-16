@@ -69,12 +69,36 @@ namespace Avalonia.Build.Tasks
         }
 
         List<Source> BuildResourceSources()
-           => Resources.Select(r =>
-           {
-               var src = new Source(r, Root);
-               BuildEngine.LogMessage(FormattableString.Invariant($"avares -> name:{src.Path}, path: {src.SystemPath}, size:{src.Size}, ItemSpec:{r.ItemSpec}"), _reportImportance);
-               return src;
-           }).ToList();
+        {
+            var sources = Resources.Select(r => new Source(r, Root)).ToList();
+            
+            // Deduplicate by SystemPath to avoid processing the same file twice
+            var deduplicated = sources.GroupBy(s => s.SystemPath, StringComparer.OrdinalIgnoreCase)
+                                     .Select(g => g.First()) // Take first occurrence
+                                     .ToList();
+
+            if (sources.Count != deduplicated.Count)
+            {
+                var duplicates = sources.GroupBy(s => s.SystemPath, StringComparer.OrdinalIgnoreCase)
+                                       .Where(g => g.Count() > 1);
+                
+                foreach (var duplicate in duplicates)
+                {
+                    BuildEngine.LogMessage($"Found {duplicate.Count()} duplicate entries for: {duplicate.Key}", MessageImportance.Normal);
+                    foreach (var item in duplicate)
+                    {
+                        BuildEngine.LogMessage($"  - Virtual path: {item.Path}", MessageImportance.Normal);
+                    }
+                }
+            }
+
+            foreach (var src in deduplicated)
+            {
+                BuildEngine.LogMessage(FormattableString.Invariant($"avares -> name:{src.Path}, path: {src.SystemPath}, size:{src.Size}"), _reportImportance);
+            }
+            
+            return deduplicated;
+        }
 
         private void Pack(Stream output, List<Source> sources)
         {
@@ -118,6 +142,9 @@ namespace Avalonia.Build.Tasks
 
                             BuildEngine.LogError(AvaloniaXamlDiagnosticCodes.DuplicateXClass, s.SystemPath,
                                 $"Duplicate x:Class directive, {info.XClass} is already used in {typeToXamlIndex[info.XClass]}");
+                            // Log additional debug info
+                            BuildEngine.LogMessage($"Current file SystemPath: {s.SystemPath}", MessageImportance.High);
+                            BuildEngine.LogMessage($"Previous file path: {typeToXamlIndex[info.XClass]}", MessageImportance.High);
                             return false;
                         }
                         typeToXamlIndex[info.XClass] = path;
