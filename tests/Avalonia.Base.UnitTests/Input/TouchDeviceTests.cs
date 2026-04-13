@@ -1,14 +1,18 @@
 ﻿using System;
+using System.Windows.Input;
+using Avalonia.Base.UnitTests.Input;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input.Raw;
 using Avalonia.Platform;
-using Avalonia.Threading;
+using Avalonia.Rendering;
 using Avalonia.UnitTests;
 using Moq;
 using Xunit;
 
 namespace Avalonia.Input.UnitTests
 {
-    public class TouchDeviceTests
+    public class TouchDeviceTests : PointerTestsBase
     {
         [Fact]
         public void Tapped_Event_Is_Fired_With_Touch()
@@ -24,7 +28,7 @@ namespace Avalonia.Input.UnitTests
                 isTapped = true;
                 executedTimes++;
             };
-            TapOnce(InputManager.Instance, touchDevice, root);
+            TapOnce(InputManager.Instance!, touchDevice, root);
             Assert.True(isTapped);
             Assert.Equal(1, executedTimes);
 
@@ -49,8 +53,9 @@ namespace Avalonia.Input.UnitTests
             {
                 tappedExecutedTimes++;
             };
-            TapOnce(InputManager.Instance, touchDevice, root);
-            TapOnce(InputManager.Instance, touchDevice, root, touchPointId: 1);
+            var inputManager = InputManager.Instance!;
+            TapOnce(inputManager, touchDevice, root);
+            TapOnce(inputManager, touchDevice, root, touchPointId: 1);
             Assert.Equal(1, tappedExecutedTimes);
             Assert.True(isDoubleTapped);
             Assert.Equal(1, doubleTappedExecutedTimes);
@@ -75,9 +80,10 @@ namespace Avalonia.Input.UnitTests
                 pointerPressedClicks = e.ClickCount;
                 pointerPressedExecutedTimes++;
             };
+            var inputManager = InputManager.Instance!;
             for (int i = 0; i < clickCount; i++)
             {
-                TapOnce(InputManager.Instance, touchDevice, root, touchPointId: i);
+                TapOnce(inputManager, touchDevice, root, touchPointId: i);
             }
 
             Assert.Equal(clickCount, pointerPressedExecutedTimes);
@@ -103,8 +109,9 @@ namespace Avalonia.Input.UnitTests
             {
                 tappedExecutedTimes++;
             };
-            TapOnce(InputManager.Instance, touchDevice, root);
-            TapOnce(InputManager.Instance, touchDevice, root, 21, 1);
+            var inputManager = InputManager.Instance!;
+            TapOnce(inputManager, touchDevice, root);
+            TapOnce(inputManager, touchDevice, root, 21, 1);
             Assert.Equal(2, tappedExecutedTimes);
             Assert.False(isDoubleTapped);
             Assert.Equal(0, doubleTappedExecutedTimes);
@@ -130,11 +137,42 @@ namespace Avalonia.Input.UnitTests
             {
                 tappedExecutedTimes++;
             };
-            SendXTouchContactsWithIds(InputManager.Instance, touchDevice, root, RawPointerEventType.TouchBegin, 0, 1);
-            SendXTouchContactsWithIds(InputManager.Instance, touchDevice, root, RawPointerEventType.TouchEnd, 0, 1);
+            var inputManager = InputManager.Instance!;
+            SendXTouchContactsWithIds(inputManager, touchDevice, root, RawPointerEventType.TouchBegin, 0, 1);
+            SendXTouchContactsWithIds(inputManager, touchDevice, root, RawPointerEventType.TouchEnd, 0, 1);
             Assert.Equal(2, tappedExecutedTimes);
             Assert.False(isDoubleTapped);
             Assert.Equal(0, doubleTappedExecutedTimes);
+        }
+
+        [Fact]
+        public void Touch_Pointer_Should_Set_Focus_On_Pointer_Released()
+        {
+            using var scope = AvaloniaLocator.EnterScope();
+            using var app = UnitTestApplication.Start(
+               TestServices.RealFocus);
+
+            var impl = CreateTopLevelImplMock();
+
+            var renderer = new Mock<IHitTester>();
+            var root = new TestTopLevel(impl.Object)
+            {
+                HitTesterOverride = renderer.Object,
+            };
+            var host = root.TopLevelHost;
+
+            host.Focusable = true;
+            var touchDevice = new TouchDevice();
+            var inputManager = InputManager.Instance!;
+
+            Assert.False(host.IsFocused);
+
+            Press(InputManager.Instance!, touchDevice, root.InputRoot);
+
+            Assert.False(host.IsFocused);
+            Release(InputManager.Instance!, touchDevice, root.InputRoot);
+
+            Assert.True(host.IsFocused);
         }
 
         [Fact]
@@ -191,24 +229,66 @@ namespace Avalonia.Input.UnitTests
             {
                 tappedExecutedTimes++;
             };
-            SendXTouchContactsWithIds(InputManager.Instance, touchDevice, root, RawPointerEventType.TouchBegin, 0, 1);
-            SendXTouchContactsWithIds(InputManager.Instance, touchDevice, root, RawPointerEventType.TouchEnd, 0, 1);
-            TapOnce(InputManager.Instance, touchDevice, root, touchPointId: 2);
-            TapOnce(InputManager.Instance, touchDevice, root, touchPointId: 3);
-            TapOnce(InputManager.Instance, touchDevice, root, touchPointId: 4);
-            SendXTouchContactsWithIds(InputManager.Instance, touchDevice, root, RawPointerEventType.TouchBegin, 5, 6, 7);
-            SendXTouchContactsWithIds(InputManager.Instance, touchDevice, root, RawPointerEventType.TouchEnd, 5, 6, 7);
-            TapOnce(InputManager.Instance, touchDevice, root, touchPointId: 8);
+            var inputManager = InputManager.Instance!;
+            SendXTouchContactsWithIds(inputManager, touchDevice, root, RawPointerEventType.TouchBegin, 0, 1);
+            SendXTouchContactsWithIds(inputManager, touchDevice, root, RawPointerEventType.TouchEnd, 0, 1);
+            TapOnce(inputManager, touchDevice, root, touchPointId: 2);
+            TapOnce(inputManager, touchDevice, root, touchPointId: 3);
+            TapOnce(inputManager, touchDevice, root, touchPointId: 4);
+            SendXTouchContactsWithIds(inputManager, touchDevice, root, RawPointerEventType.TouchBegin, 5, 6, 7);
+            SendXTouchContactsWithIds(inputManager, touchDevice, root, RawPointerEventType.TouchEnd, 5, 6, 7);
+            TapOnce(inputManager, touchDevice, root, touchPointId: 8);
             Assert.Equal(6, tappedExecutedTimes);
             Assert.Equal(9, pointerPressedExecutedTimes);
             Assert.True(isDoubleTapped);
             Assert.Equal(3, doubleTappedExecutedTimes);
         }
 
+        [Fact]
+        public void ToggleButton_Does_Not_Toggle_When_Command_Becomes_Disabled_Between_TouchBegin_And_TouchEnd()
+        {
+            using var app = UnitTestApp(new TimeSpan(200));
+
+            var renderer = new Mock<IHitTester>();
+            var impl = CreateTopLevelImplMock();
+            var command = new TestCommand(true);
+            var target = new ToggleButton
+            {
+                Width = 100,
+                Height = 100,
+                Command = command,
+            };
+            var root = CreateInputRoot(impl.Object, target, renderer.Object);
+            var device = new TouchDevice();
+            var touchBegin = new RawPointerEventArgs(device, 0, root.PresentationSource, RawPointerEventType.TouchBegin, new Point(50, 50), RawInputModifiers.None)
+            {
+                RawPointerId = 1
+            };
+            var touchEnd = new RawPointerEventArgs(device, 1, root.PresentationSource, RawPointerEventType.TouchEnd, new Point(50, 50), RawInputModifiers.None)
+            {
+                RawPointerId = 1
+            };
+
+            SetHit(renderer, target);
+
+            impl.Object.Input!(touchBegin);
+
+            Assert.True(target.IsPressed);
+            Assert.False(target.IsChecked ?? false);
+
+            command.IsEnabled = false;
+
+            Assert.False(target.IsEffectivelyEnabled);
+
+            impl.Object.Input!(touchEnd);
+
+            Assert.False(target.IsChecked ?? false);
+        }
+
         private IDisposable UnitTestApp(TimeSpan doubleClickTime = new TimeSpan())
         {
             var unitTestApp = UnitTestApplication.Start(
-                new TestServices(inputManager: new InputManager(), dispatcherImpl: Mock.Of<IDispatcherImpl>(x => x.CurrentThreadIsLoopThread == true)));
+                new TestServices(inputManager: new InputManager()));
             var iSettingsMock = new Mock<IPlatformSettings>();
             iSettingsMock.Setup(x => x.GetDoubleTapTime(It.IsAny<PointerType>())).Returns(doubleClickTime);
             iSettingsMock.Setup(x => x.GetDoubleTapSize(It.IsAny<PointerType>())).Returns(new Size(16, 16));
@@ -236,14 +316,12 @@ namespace Avalonia.Input.UnitTests
 
         private static void TapOnce(IInputManager inputManager, TouchDevice device, IInputRoot root, ulong timestamp = 0, long touchPointId = 0)
         {
-            inputManager.ProcessInput(new RawPointerEventArgs(device, timestamp,
-                                               root,
-                                               RawPointerEventType.TouchBegin,
-                                               new Point(0, 0),
-                                               RawInputModifiers.None)
-            {
-                RawPointerId = touchPointId
-            });
+            Press(inputManager, device, root, timestamp, touchPointId);
+            Release(inputManager, device, root, timestamp, touchPointId);
+        }
+
+        private static void Release(IInputManager inputManager, TouchDevice device, IInputRoot root, ulong timestamp = 0, long touchPointId = 0)
+        {
             inputManager.ProcessInput(new RawPointerEventArgs(device, timestamp,
                                                 root,
                                                 RawPointerEventType.TouchEnd,
@@ -252,6 +330,61 @@ namespace Avalonia.Input.UnitTests
             {
                 RawPointerId = touchPointId
             });
+        }
+
+        private static void Press(IInputManager inputManager, TouchDevice device, IInputRoot root, ulong timestamp = 0, long touchPointId = 0)
+        {
+            inputManager.ProcessInput(new RawPointerEventArgs(device, timestamp,
+                                               root,
+                                               RawPointerEventType.TouchBegin,
+                                               new Point(0, 0),
+                                               RawInputModifiers.None)
+            {
+                RawPointerId = touchPointId
+            });
+        }
+
+        private sealed class TestCommand : ICommand
+        {
+            private bool _enabled;
+            private EventHandler? _canExecuteChanged;
+
+            public TestCommand(bool enabled)
+            {
+                _enabled = enabled;
+            }
+
+            public bool IsEnabled
+            {
+                get => _enabled;
+                set
+                {
+                    if (_enabled == value)
+                    {
+                        return;
+                    }
+
+                    _enabled = value;
+                    _canExecuteChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
+
+            public event EventHandler? CanExecuteChanged
+            {
+                add => _canExecuteChanged += value;
+                remove => _canExecuteChanged -= value;
+            }
+
+            public bool CanExecute(object? parameter) => _enabled;
+
+            public void Execute(object? parameter)
+            {
+            }
+        }
+
+        private class TestTopLevel(ITopLevelImpl impl) : TopLevel(impl)
+        {
+
         }
     }
 }

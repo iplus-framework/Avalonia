@@ -13,9 +13,7 @@
     <ProjectReference Remove="samples/*.MacCatalyst/*.csproj" />
     <ProjectReference Remove="samples/*.Android/*.csproj" />
     <ProjectReference Remove="samples/*.Browser/*.csproj" />
-    <ProjectReference Remove="samples/*.Blazor/*.csproj" />
     <ProjectReference Remove="samples/SingleProjectSandbox/*.csproj" />
-    <ProjectReference Remove="samples/ControlCatalog.Desktop/*.*proj" />
   </ItemGroup>
 
   <ItemGroup Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
@@ -24,7 +22,4 @@
     <ProjectReference Remove="src/iOS/**/*.*proj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.SlnGen" Version="8.5.17" PrivateAssets="all" />
-  </ItemGroup>
 </Project>

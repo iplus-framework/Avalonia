@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -64,6 +65,9 @@ internal sealed class ClipboardImpl(UIPasteboard pasteboard)
 
         foreach (var dataFormat in dataTransferItem.Formats)
         {
+            if (dataFormat.Kind == DataFormatKind.InProcess)
+                continue;
+
             var data = await TryGetFoundationDataAsync(dataTransferItem, dataFormat);
             if (data is null)
                 continue;
@@ -88,6 +92,18 @@ internal sealed class ClipboardImpl(UIPasteboard pasteboard)
         {
             var file = await dataTransferItem.TryGetValueAsync(DataFormat.File);
             return file is null ? null : (NSString)file.Path.AbsoluteUri;
+        }
+
+        if (format.Equals(DataFormat.Bitmap))
+        {
+            var bitmap = await dataTransferItem.TryGetValueAsync(DataFormat.Bitmap);
+            if (bitmap is null)
+                return null;
+            using var memoryStream = new MemoryStream();
+            bitmap.Save(memoryStream, 100);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            using var data = NSData.FromStream(memoryStream)!;
+            return UIImage.LoadFromData(data);
         }
 
         if (format is DataFormat<string> stringFormat)

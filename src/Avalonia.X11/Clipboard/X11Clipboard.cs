@@ -32,7 +32,7 @@ namespace Avalonia.X11.Clipboard
             _avaloniaSaveTargetsAtom = XInternAtom(_x11.Display, "AVALONIA_SAVE_TARGETS_PROPERTY_ATOM", false);
             _textAtoms = new[]
             {
-                _x11.Atoms.XA_STRING,
+                _x11.Atoms.STRING,
                 _x11.Atoms.OEMTEXT,
                 _x11.Atoms.UTF8_STRING,
                 _x11.Atoms.UTF16_STRING
@@ -50,12 +50,14 @@ namespace Avalonia.X11.Clipboard
         {
             if (ev.type == XEventName.SelectionClear)
             {
-                _storedDataTransfer = null;
+                // We night have already regained the clipboard ownership by the time a SelectionClear message arrives.
+                if (GetOwner() != _handle)
+                    _storedDataTransfer = null;
+
                 _storeAtomTcs?.TrySetResult(true);
-                return;
             }
 
-            if (ev.type == XEventName.SelectionRequest)
+            else if (ev.type == XEventName.SelectionRequest)
             {
                 var sel = ev.SelectionRequestEvent;
                 var resp = new XEvent
@@ -80,13 +82,24 @@ namespace Avalonia.X11.Clipboard
                 XSendEvent(_x11.Display, sel.requestor, false, new IntPtr((int)EventMask.NoEventMask), ref resp);
             }
 
+            else if (ev.type == XEventName.SelectionNotify)
+            {
+                if (ev.SelectionEvent.selection == _x11.Atoms.CLIPBOARD_MANAGER &&
+                    ev.SelectionEvent.target == _x11.Atoms.SAVE_TARGETS &&
+                    _x11.Atoms.CLIPBOARD_MANAGER != IntPtr.Zero &&
+                    _x11.Atoms.SAVE_TARGETS != IntPtr.Zero)
+                {
+                    _storeAtomTcs?.TrySetResult(true);
+                }
+            }
+
             IntPtr WriteTargetToProperty(IntPtr target, IntPtr window, IntPtr property)
             {
                 if (target == _x11.Atoms.TARGETS)
                 {
                     var atoms = ConvertDataTransfer(_storedDataTransfer);
                     XChangeProperty(_x11.Display, window, property,
-                        _x11.Atoms.XA_ATOM, 32, PropertyMode.Replace, atoms, atoms.Length);
+                        _x11.Atoms.ATOM, 32, PropertyMode.Replace, atoms, atoms.Length);
                     return property;
                 }
                 else if (target == _x11.Atoms.SAVE_TARGETS && _x11.Atoms.SAVE_TARGETS != IntPtr.Zero)
@@ -95,7 +108,14 @@ namespace Avalonia.X11.Clipboard
                 }
                 else if (ClipboardDataFormatHelper.ToDataFormat(target, _x11.Atoms) is { } dataFormat)
                 {
-                    if (_storedDataTransfer is null || !_storedDataTransfer.Contains(dataFormat))
+                    if (_storedDataTransfer is null)
+                        return IntPtr.Zero;
+
+                    // Our default bitmap format is image/png
+                    if (dataFormat.Identifier is "image/png" && _storedDataTransfer.Contains(DataFormat.Bitmap))
+                        dataFormat = DataFormat.Bitmap;
+
+                    if (!_storedDataTransfer.Contains(dataFormat))
                         return IntPtr.Zero;
 
                     if (TryGetDataAsBytes(_storedDataTransfer, dataFormat, target) is not { } bytes)
@@ -144,6 +164,17 @@ namespace Avalonia.X11.Clipboard
                 return ClipboardDataFormatHelper.TryGetStringEncoding(targetFormatAtom, _x11.Atoms) is { } encoding ?
                     encoding.GetBytes(text ?? string.Empty) :
                     null;
+            }
+
+            if (DataFormat.Bitmap.Equals(format))
+            {
+                if (dataTransfer.TryGetValueAsync(DataFormat.Bitmap).GetAwaiter().GetResult() is not { } bitmap)
+                    return null;
+
+                using var stream = new MemoryStream();
+                bitmap.Save(stream);
+
+                return stream.ToArray();
             }
             
             if (DataFormat.File.Equals(format))
@@ -222,6 +253,9 @@ namespace Avalonia.X11.Clipboard
             {
                 foreach (var format in dataTransfer.Formats)
                 {
+                    if (format.Kind == DataFormatKind.InProcess)
+                        continue;
+
                     foreach (var atom in ClipboardDataFormatHelper.ToAtoms(format, _textAtoms, _x11.Atoms))
                         atoms.Add(atom);
                 }
@@ -256,7 +290,7 @@ namespace Avalonia.X11.Clipboard
                     _storeAtomTcs = new TaskCompletionSource<bool>();
 
                 var atoms = ConvertDataTransfer(dataTransfer);
-                XChangeProperty(_x11.Display, _handle, _avaloniaSaveTargetsAtom, _x11.Atoms.XA_ATOM, 32,
+                XChangeProperty(_x11.Display, _handle, _avaloniaSaveTargetsAtom, _x11.Atoms.ATOM, 32,
                     PropertyMode.Replace, atoms, atoms.Length);
                 XConvertSelection(_x11.Display, _x11.Atoms.CLIPBOARD_MANAGER, _x11.Atoms.SAVE_TARGETS,
                     _avaloniaSaveTargetsAtom, _handle, IntPtr.Zero);
@@ -286,7 +320,7 @@ namespace Avalonia.X11.Clipboard
                 return null;
 
             // Get the items while we're in an async method. This does not get values, except for DataFormat.File.
-            var reader = new ClipboardDataReader(_x11, _platform, textFormatAtoms, owner);
+            var reader = new ClipboardDataReader(_x11, _platform, textFormatAtoms, owner, dataFormats);
             var items = await CreateItemsAsync(reader, dataFormats);
             return new ClipboardDataTransfer(reader, dataFormats, items);
         }
@@ -301,6 +335,8 @@ namespace Avalonia.X11.Clipboard
 
             var formats = new List<DataFormat>(formatAtoms.Length);
             List<IntPtr>? textFormatAtoms = null;
+
+            var hasImage = false;
 
             foreach (var formatAtom in formatAtoms)
             {
@@ -317,8 +353,19 @@ namespace Avalonia.X11.Clipboard
                     textFormatAtoms.Add(formatAtom);
                 }
                 else
+                {
                     formats.Add(format);
+
+                    if(!hasImage)
+                    {
+                        if (format.Identifier is ClipboardDataFormatHelper.JpegFormatMimeType or ClipboardDataFormatHelper.PngFormatMimeType)
+                            hasImage = true;
+                    }
+                }
             }
+
+            if (hasImage)
+                formats.Add(DataFormat.Bitmap);
 
             return (formats.ToArray(), textFormatAtoms?.ToArray() ?? []);
         }

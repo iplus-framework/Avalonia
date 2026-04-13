@@ -101,8 +101,9 @@ namespace Avalonia.Skia.UnitTests.Media.TextFormatting
                 foreach (var textRun in textLine.TextRuns.OrderBy(x => TextTestHelper.GetStartCharIndex(x.Text)))
                 {
                     var shapedRun = (ShapedTextRun)textRun;
+                    var runOffset = TextTestHelper.GetStartCharIndex(shapedRun.Text);
 
-                    var runClusters = shapedRun.ShapedBuffer.Select(glyph => glyph.GlyphCluster);
+                    var runClusters = shapedRun.ShapedBuffer.Select(glyph => glyph.GlyphCluster + runOffset);
 
                     clusters.AddRange(shapedRun.IsReversed ? runClusters.Reverse() : runClusters);
                 }
@@ -150,8 +151,9 @@ namespace Avalonia.Skia.UnitTests.Media.TextFormatting
                 foreach (var textRun in textLine.TextRuns.OrderBy(x => TextTestHelper.GetStartCharIndex(x.Text)))
                 {
                     var shapedRun = (ShapedTextRun)textRun;
+                    var runOffset = TextTestHelper.GetStartCharIndex(shapedRun.Text);
 
-                    var runClusters = shapedRun.ShapedBuffer.Select(glyph => glyph.GlyphCluster);
+                    var runClusters = shapedRun.ShapedBuffer.Select(glyph => glyph.GlyphCluster + runOffset);
 
                     clusters.AddRange(shapedRun.IsReversed ? runClusters.Reverse() : runClusters);
                 }
@@ -262,7 +264,7 @@ namespace Avalonia.Skia.UnitTests.Media.TextFormatting
 
                 var clusters = textLine.TextRuns
                     .Cast<ShapedTextRun>()
-                    .SelectMany(x => x.ShapedBuffer, (_, glyph) => glyph.GlyphCluster)
+                    .SelectMany(x => x.ShapedBuffer, (run, glyph) => glyph.GlyphCluster + TextTestHelper.GetStartCharIndex(run.Text))
                     .ToArray();
 
                 var previousCharacterHit = new CharacterHit(text.Length);
@@ -1377,9 +1379,10 @@ namespace Avalonia.Skia.UnitTests.Media.TextFormatting
 
             foreach (var textRun in shapedTextRuns)
             {
+                var runOffset = TextTestHelper.GetStartCharIndex(textRun.Text);
                 var shapedBuffer = textRun.ShapedBuffer;
 
-                var currentClusters = shapedBuffer.Select(glyph => glyph.GlyphCluster).ToList();
+                var currentClusters = shapedBuffer.Select(glyph => glyph.GlyphCluster + runOffset).ToList();
 
                 foreach (var currentCluster in currentClusters)
                 {
@@ -2042,7 +2045,6 @@ namespace Avalonia.Skia.UnitTests.Media.TextFormatting
 
                 var defaultProperties = new GenericTextRunProperties(typeface);
                 var text = "a\u202C\u202C\u202C\u202Cb";
-                var shaperOption = new TextShaperOptions(typeface.GlyphTypeface);
 
                 var textSource = new SingleBufferTextSource(text, defaultProperties);
 
@@ -2285,6 +2287,212 @@ namespace Avalonia.Skia.UnitTests.Media.TextFormatting
             }
         }
 
+        [Fact]
+        public void Backspace_Should_Treat_CRLF_As_A_Unit()
+        {
+            using (Start())
+            {
+                var typeface = new Typeface(FontFamily.Parse("resm:Avalonia.Skia.UnitTests.Fonts?assembly=Avalonia.Skia.UnitTests#Manrope"));
+                var defaultProperties = new GenericTextRunProperties(typeface);
+                var textSource = new SingleBufferTextSource("one\r\n", defaultProperties);
+
+                var formatter = new TextFormatterImpl();
+
+                var textLine =
+                    formatter.FormatLine(textSource, 0, double.PositiveInfinity,
+                        new GenericTextParagraphProperties(defaultProperties));
+
+                Assert.NotNull(textLine);
+
+                var backspaceHit = textLine.GetBackspaceCaretCharacterHit(new CharacterHit(5));
+
+                Assert.Equal(3, backspaceHit.FirstCharacterIndex);
+            }
+        }
+
+        [Fact]
+        public void Should_Collapse_With_TextPathSegmentTrimming_Without_PathSegment()
+        {
+            var text = "foo";
+
+            using (Start())
+            {
+                var typeface = Typeface.Default;
+
+                var defaultProperties = new GenericTextRunProperties(typeface);
+
+                var textSource = new SingleBufferTextSource(text, defaultProperties);
+
+                var formatter = new TextFormatterImpl();
+
+                var textLine =
+                    formatter.FormatLine(textSource, 0, double.PositiveInfinity,
+                        new GenericTextParagraphProperties(defaultProperties));
+
+                Assert.NotNull(textLine);
+
+                var trimming = new TextPathSegmentTrimming("*");
+
+                var collapsingProperties = trimming.CreateCollapsingProperties(new TextCollapsingCreateInfo(15, defaultProperties, FlowDirection.LeftToRight));
+
+                var collapsedLine = textLine.Collapse(collapsingProperties);
+
+                Assert.NotNull(collapsedLine);
+
+                var result = ExtractTextFromRuns(collapsedLine);
+
+                Assert.Equal("*o", result);
+            }
+        }
+
+        [Fact]
+        public void Should_Collapse_With_TextPathSegmentTrimming_NoSpace()
+        {
+            var text = "foo";
+
+            using (Start())
+            {
+                var typeface = Typeface.Default;
+
+                var defaultProperties = new GenericTextRunProperties(typeface);
+
+                var textSource = new SingleBufferTextSource(text, defaultProperties);
+
+                var formatter = new TextFormatterImpl();
+
+                var textLine =
+                    formatter.FormatLine(textSource, 0, double.PositiveInfinity,
+                        new GenericTextParagraphProperties(defaultProperties));
+
+                Assert.NotNull(textLine);
+
+                var trimming = new TextPathSegmentTrimming("*");
+
+                var collapsingProperties = trimming.CreateCollapsingProperties(new TextCollapsingCreateInfo(8, defaultProperties, FlowDirection.LeftToRight));
+
+                var collapsedLine = textLine.Collapse(collapsingProperties);
+
+                Assert.NotNull(collapsedLine);
+
+                var result = ExtractTextFromRuns(collapsedLine);
+
+                Assert.Equal("*", result);
+            }
+        }
+
+        [Theory]
+        [InlineData("somedirectory\\")]
+        [InlineData("somedirectory/")]
+        public void TruncatePath_PathEndingWithSlash_ReturnsNonEmpty(string path)
+        {
+            var typeface = Typeface.Default;
+
+            using (Start())
+            {
+                var defaultProperties = new GenericTextRunProperties(typeface);
+
+                var textSource = new SingleBufferTextSource(path, defaultProperties);
+
+                var formatter = new TextFormatterImpl();
+
+                var textLine =
+                    formatter.FormatLine(textSource, 0, double.PositiveInfinity,
+                        new GenericTextParagraphProperties(defaultProperties));
+
+                Assert.NotNull(textLine);
+
+                var trimming = new TextPathSegmentTrimming("*");
+
+                var collapsingProperties = trimming.CreateCollapsingProperties(new TextCollapsingCreateInfo(50, defaultProperties, FlowDirection.LeftToRight));
+
+                var collapsedLine = textLine.Collapse(collapsingProperties);
+
+                Assert.NotNull(collapsedLine);
+
+                var result = ExtractTextFromRuns(collapsedLine);
+
+                Assert.True(result.Contains("ory"));
+            }
+        }
+
+        [Theory]
+        [InlineData("directory\\file.txt")]
+        [InlineData("directory/file.txt")]
+        public void Should_Collapse_With_Ellipsis(string path)
+        {
+            var typeface = Typeface.Default;
+            using (Start())
+            {
+                var defaultProperties = new GenericTextRunProperties(typeface);
+
+                var textSource = new SingleBufferTextSource(path, defaultProperties);
+
+                var formatter = new TextFormatterImpl();
+
+                var textLine =
+                    formatter.FormatLine(textSource, 0, double.PositiveInfinity,
+                        new GenericTextParagraphProperties(defaultProperties));
+
+                Assert.NotNull(textLine);
+
+                var trimming = new TextPathSegmentTrimming("*");
+
+                var collapsingProperties = trimming.CreateCollapsingProperties(new TextCollapsingCreateInfo(8, defaultProperties, FlowDirection.LeftToRight));
+
+                var collapsedLine = textLine.Collapse(collapsingProperties);
+
+                Assert.NotNull(collapsedLine);
+
+                var result = ExtractTextFromRuns(collapsedLine);
+
+                Assert.Equal("*", result);
+            }
+        }
+
+
+        [Fact]
+        public void Should_Trim_Path_At_The_End()
+        {
+            string text = "verylongdirectory\\file.txt";
+
+            using (Start())
+            {
+                var typeface = Typeface.Default;
+
+                var defaultProperties = new GenericTextRunProperties(typeface);
+
+                var textSource = new SingleBufferTextSource(text, defaultProperties);
+
+                var formatter = new TextFormatterImpl();
+
+                var textLine =
+                    formatter.FormatLine(textSource, 0, double.PositiveInfinity,
+                        new GenericTextParagraphProperties(defaultProperties));
+
+                Assert.NotNull(textLine);
+
+                var trimming = new TextPathSegmentTrimming("*");
+
+                var collapsingProperties = trimming.CreateCollapsingProperties(new TextCollapsingCreateInfo(40, defaultProperties, FlowDirection.LeftToRight));
+
+                var collapsedLine = textLine.Collapse(collapsingProperties);
+
+                Assert.NotNull(collapsedLine);
+
+                var result = ExtractTextFromRuns(collapsedLine);
+
+                Assert.Equal("*.txt", result);
+            }
+        }
+
+        public static string ExtractTextFromRuns(TextLine textLine)
+        {
+            // Only extract text for ShapedTextRun instances.
+            return string.Concat(textLine.TextRuns
+                .OfType<ShapedTextRun>()
+                .Select(r => r.Text.ToString()));
+        }
+
         private class FixedRunsTextSource : ITextSource
         {
             private readonly IReadOnlyList<TextRun> _textRuns;
@@ -2316,7 +2524,6 @@ namespace Avalonia.Skia.UnitTests.Media.TextFormatting
         {
             var disposable = UnitTestApplication.Start(TestServices.MockPlatformRenderInterface
                 .With(renderInterface: new PlatformRenderInterface(null),
-                    textShaperImpl: new TextShaperImpl(),
                     fontManagerImpl: new CustomFontManagerImpl()));
 
             return disposable;

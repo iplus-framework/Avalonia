@@ -1,3 +1,4 @@
+#pragma warning disable CS0618 // TODO: Temporary workaround until Tmds is replaced.
 using System;
 using System.Collections.Generic;
 using Avalonia.FreeDesktop.DBusIme.Fcitx;
@@ -28,6 +29,17 @@ namespace Avalonia.FreeDesktop.DBusIme
                     return null;
 
                 if (value is not null && KnownMethods.TryGetValue(value, out var factory))
+                    return factory;
+            }
+
+            var modifiers = Environment.GetEnvironmentVariable("XMODIFIERS");
+            if (modifiers is not null && modifiers.Contains("@im="))
+            {
+                int imNameStart = modifiers.IndexOf("@im=") + "@im=".Length;
+                int imNameEnd = modifiers.IndexOf("@", imNameStart);
+                string imName = imNameEnd == -1 ? modifiers.Substring(imNameStart) : modifiers.Substring(imNameStart, imNameEnd - imNameStart);
+
+                if (KnownMethods.TryGetValue(imName, out var factory))
                     return factory;
             }
 

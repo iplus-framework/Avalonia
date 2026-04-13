@@ -97,11 +97,8 @@ namespace Avalonia.Controls
         /// <summary>
         /// Defines the <see cref="LetterSpacing"/> property.
         /// </summary>
-        public static readonly AttachedProperty<double> LetterSpacingProperty =
-            AvaloniaProperty.RegisterAttached<TextBlock, Control, double>(
-                nameof(LetterSpacing),
-                0,
-                inherits: true);
+        public static readonly StyledProperty<double> LetterSpacingProperty =
+            TextElement.LetterSpacingProperty.AddOwner<TextBlock>();
 
         /// <summary>
         /// Defines the <see cref="MaxLines"/> property.
@@ -366,7 +363,10 @@ namespace Avalonia.Controls
 
         internal bool HasComplexContent => Inlines != null && Inlines.Count > 0;
 
-        private protected Size GetMaxSizeFromConstraint()
+        /// <summary>
+        /// Gets the maximum available size based on the constraint of the control
+        /// </summary>
+        protected Size GetMaxSizeFromConstraint()
         {
             var maxWidth = double.IsNaN(_constraint.Width) ? 0.0 : _constraint.Width;
             var maxHeight = double.IsNaN(_constraint.Height) ? 0.0 : _constraint.Height;
@@ -660,10 +660,10 @@ namespace Avalonia.Controls
 
             var defaultProperties = new GenericTextRunProperties(
                 typeface,
-                FontFeatures,
                 FontSize,
                 TextDecorations,
-                Foreground);
+                Foreground,
+                fontFeatures: FontFeatures);
 
             var paragraphProperties = new GenericTextParagraphProperties(FlowDirection, IsMeasureValid ? TextAlignment : TextAlignment.Left, true, false,
                 defaultProperties, TextWrapping, LineHeight, 0, LetterSpacing)

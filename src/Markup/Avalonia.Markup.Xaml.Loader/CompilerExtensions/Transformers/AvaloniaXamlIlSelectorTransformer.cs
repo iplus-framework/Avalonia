@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using Avalonia.Markup.Parsers;
@@ -208,8 +209,10 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
                 throw new XamlSelectorsTransformException("Unable to parse selector: " + e.Message, node, e);
             }
 
+            // Selectors should resolve control types only.
+            // isMarkupExtension = false to prevent resolving selector types to XExtension.
             var selector = Create(parsed, (p, n) 
-                => TypeReferenceResolver.ResolveType(context, $"{p}:{n}", true, node, true));
+                => TypeReferenceResolver.ResolveType(context, $"{p}:{n}", false, node, true));
             pn.Values[0] = selector;
 
             var templateType = GetLastTemplateTypeFromSelector(selector);
@@ -307,6 +310,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
         
         protected abstract void DoEmit(XamlEmitContext<IXamlILEmitter, XamlILNodeEmitResult> context, IXamlILEmitter codeGen);
 
+        [UnconditionalSuppressMessage("Trimming", "IL2122", Justification = TrimmingMessages.TypesInCoreOrAvaloniaAssembly)]
         protected void EmitCall(XamlEmitContext<IXamlILEmitter, XamlILNodeEmitResult> context, IXamlILEmitter codeGen, Func<IXamlMethod, bool> method)
         {
             var selectors = context.Configuration.TypeSystem.GetType("Avalonia.Styling.Selectors");
@@ -550,6 +554,7 @@ namespace Avalonia.Markup.Xaml.XamlIl.CompilerExtensions.Transformers
             }
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2122", Justification = TrimmingMessages.TypesInCoreOrAvaloniaAssembly)]
         protected override void DoEmit(XamlEmitContext<IXamlILEmitter, XamlILNodeEmitResult> context, IXamlILEmitter codeGen)
         {
             if (_selectors.Count == 0)
