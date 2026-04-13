@@ -1,6 +1,6 @@
-[submodule "XamlX"]
-	path = external/XamlX
-	url = https://github.com/kekekeks/XamlX.git
 [submodule "Avalonia.DBus"]
 	path = external/Avalonia.DBus
 	url = https://github.com/AvaloniaUI/Avalonia.DBus.git
+[submodule "external/XamlX"]
+	path = external/XamlX
+	url = git@github.com:iplus-framework/XamlX.git
