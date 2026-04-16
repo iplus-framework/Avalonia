@@ -7,6 +7,7 @@
 
     <!-- Xamarin.AndroidX assemblies are not signed -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <JavaSdkDirectory Condition="'$(JavaSdkDirectory)'==''">$(JAVA_HOME)</JavaSdkDirectory>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\packages\Avalonia\Avalonia.csproj" />

@@ -1,5 +1,12 @@
 <Solution>
-  <!-- Android and Browser projects are excluded in this custom solution to avoid mobile/web workloads. -->
+  <Folder Name="/Android/">
+    <Project Path="src/Android/Avalonia.Android/Avalonia.Android.csproj" />
+  </Folder>
+    <!-- Android and Browser projects are excluded in this custom solution to avoid mobile/web workloads. -->
+  <!-- <Folder Name="/Browser/">
+    <Project Path="src/Browser/Avalonia.Browser/Avalonia.Browser.csproj" />
+  </Folder> -->
+
   <Folder Name="/HarfBuzz/">
     <Project Path="src/HarfBuzz/Avalonia.HarfBuzz/Avalonia.HarfBuzz.csproj" />
   </Folder>
