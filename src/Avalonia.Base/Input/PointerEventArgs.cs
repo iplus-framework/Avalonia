@@ -85,6 +85,13 @@ namespace Avalonia.Input
             // (i.e. they called it for a control inside a popup.
             if (!ReferenceEquals(_rootVisual, relativeTo.VisualRoot) && relativeTo.VisualRoot is { })
             {
+                // Routed pointer events can outlive visual-tree attachment during teardown.
+                // In that case PointToScreen/PointToClient would throw for detached visuals.
+                if (_rootVisual.PresentationSource is null || relativeTo.PresentationSource is null)
+                {
+                    return default;
+                }
+
                 // Convert to absolute screen coordinates.
                 var screenPt = _rootVisual.PointToScreen(pt);
 
