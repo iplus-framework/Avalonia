@@ -193,15 +193,26 @@ namespace Avalonia
             (int)Math.Ceiling(size.Width * scale),
             (int)Math.Ceiling(size.Height * scale));
         
+        private const double FromSizeCeilingEpsilon = 1e-6;
+
         /// <summary>
-        /// A reversible variant of <see cref="FromSize(Size, double)"/> that uses Round instead of Ceiling to make it reversible from ToSize
+        /// Converts logical size back to PixelSize and rounds it up with a small epsilon to avoid having
+        /// extra pixels when doing platform pixel size -> logical size -> pixel size conversions
         /// </summary>
-        /// <param name="size">The size.</param>
+        /// <param name="size">The logical size.</param>
         /// <param name="scale">The scaling factor.</param>
-        /// <returns>The device-independent size.</returns>
-        internal static PixelSize FromSizeRounded(Size size, double scale) => new PixelSize(
-            (int)Math.Round(size.Width * scale),
-            (int)Math.Round(size.Height * scale));
+        /// <returns>The pixel size that contains the logical size at the given scale.</returns>
+        internal static PixelSize FromSizeCeiling(Size size, double scale) => new PixelSize(
+            CeilWithEpsilon(size.Width * scale),
+            CeilWithEpsilon(size.Height * scale));
+
+        private static int CeilWithEpsilon(double value)
+        {
+            var rounded = Math.Round(value);
+            if (Math.Abs(value - rounded) < FromSizeCeilingEpsilon)
+                return (int)rounded;
+            return (int)Math.Ceiling(value);
+        }
 
 
         /// <summary>

@@ -46,6 +46,7 @@
       <SolidColorBrush x:Key="CaptionButtonForeground" Color="Black" />
       <SolidColorBrush x:Key="CaptionButtonBackground" Color="#ffe5e5e5" />
       <SolidColorBrush x:Key="CaptionButtonBorderBrush" Color="#ffcacaca" />
+      <StaticResource x:Key="TitleBarBackgroundBrush" ResourceKey="ThemeBackgroundBrush" />
       
     </ResourceDictionary>
     <ResourceDictionary x:Key="Dark">
@@ -89,8 +90,9 @@
 
       <!-- BaseResources for WindowDrawnDecorations.xaml -->
       <SolidColorBrush x:Key="CaptionButtonForeground" Color="White" />
-      <SolidColorBrush x:Key="CaptionButtonBackground" Color="#ffe5e5e5" />
+      <SolidColorBrush x:Key="CaptionButtonBackground" Color="#ff1d170f" />
       <SolidColorBrush x:Key="CaptionButtonBorderBrush" Color="#ffcacaca" />
+      <StaticResource x:Key="TitleBarBackgroundBrush" ResourceKey="ThemeBackgroundBrush" />
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
   <FontFamily x:Key="ContentControlThemeFontFamily">fonts:Inter#Inter, $Default</FontFamily>
@@ -114,6 +116,9 @@
     x:Key="NotificationCardBackgroundBrush"
     Opacity="0.75"
     Color="#444444" />
+  <SolidColorBrush
+    x:Key="NotificationCardForegroundBrush"
+    Color="White" />
   <SolidColorBrush
     x:Key="NotificationCardInformationBackgroundBrush"
     Opacity="0.75"

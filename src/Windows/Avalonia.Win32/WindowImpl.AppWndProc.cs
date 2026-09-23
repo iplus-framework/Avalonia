@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
+using Avalonia.Rendering;
 using Avalonia.Threading;
 using Avalonia.Win32.Automation;
 using Avalonia.Win32.Automation.Interop;
@@ -93,11 +95,9 @@ namespace Avalonia.Win32
                                 }
                                 else
                                 {
+                                    // There's no extra border on top with WS_CAPTION: it's part of the caption.
                                     adjuster.Adjust(ref borderThickness, style, 0);
-
-                                    var thinBorderThickness = new RECT();
-                                    adjuster.Adjust(ref thinBorderThickness, style & ~(WindowStyles.WS_CAPTION | WindowStyles.WS_THICKFRAME) | WindowStyles.WS_BORDER, 0);
-                                    borderThickness.top = thinBorderThickness.top;
+                                    borderThickness.top = 0;
                                 }
                             }
                             else if (style.HasAllFlags(WindowStyles.WS_BORDER))
@@ -238,7 +238,7 @@ namespace Avalonia.Win32
 
                 case WindowsMessage.WM_SYSCOMMAND:
                     // Disable system handling of Alt/F10 menu keys.
-                    if ((SysCommands)wParam == SysCommands.SC_KEYMENU && HighWord(ToInt32(lParam)) <= 0)
+                    if (GetSysCommand(wParam) == SysCommands.SC_KEYMENU && HighWord(ToInt32(lParam)) <= 0)
                         return IntPtr.Zero;
                     break;
 
@@ -582,9 +582,7 @@ namespace Avalonia.Win32
                         e = args;
                         break;
                     }
-                case WindowsMessage.WM_POINTERDEVICEOUTOFRANGE:
                 case WindowsMessage.WM_POINTERLEAVE:
-                case WindowsMessage.WM_POINTERCAPTURECHANGED:
                     {
                         if (!_wmPointerEnabled)
                         {
@@ -592,6 +590,17 @@ namespace Avalonia.Win32
                         }
                         GetDevicePointerInfo(wParam, out var device, out var info, out var point, out var modifiers, ref timestamp);
                         var eventType = device is TouchDevice ? RawPointerEventType.TouchCancel : RawPointerEventType.LeaveWindow;
+                        e = CreatePointerArgs(device, timestamp, eventType, point, modifiers, info.pointerId);
+                        break;
+                    }
+                case WindowsMessage.WM_POINTERCAPTURECHANGED:
+                    {
+                        if (!_wmPointerEnabled)
+                        {
+                            break;
+                        }
+                        GetDevicePointerInfo(wParam, out var device, out var info, out var point, out var modifiers, ref timestamp);
+                        var eventType = device is TouchDevice ? RawPointerEventType.TouchCancel : RawPointerEventType.CancelCapture;
                         e = CreatePointerArgs(device, timestamp, eventType, point, modifiers, info.pointerId);
                         break;
                     }
@@ -610,22 +619,6 @@ namespace Avalonia.Win32
                         {
                             RawPointerId = info.pointerId
                         };
-                        break;
-                    }
-                case WindowsMessage.WM_POINTERDEVICEINRANGE:
-                    {
-                        if (!_wmPointerEnabled)
-                        {
-                            break;
-                        }
-
-                        // Do not generate events, but release mouse capture on any other device input.
-                        GetDevicePointerInfo(wParam, out var device, out _, out _, out _, ref timestamp);
-                        if (device != _mouseDevice)
-                        {
-                            _mouseDevice.Capture(null);
-                            return IntPtr.Zero;
-                        }
                         break;
                     }
                 case WindowsMessage.WM_POINTERACTIVATE:
@@ -852,9 +845,11 @@ namespace Avalonia.Win32
                             !_isFullScreenActive &&
                             !flags.HasAllFlags(SetWindowPosFlags.SWP_NOMOVE | SetWindowPosFlags.SWP_NOSIZE))
                         {
-                            // Prefer ScreenFromRect as it contains the new position.
+                            GetWindowPlacement(Hwnd, out var placement);
+
+                            // Prefer ScreenFromRect with the window's restored bounds.
                             // If the window was minimized, ScreenFromHwnd won't return the correct monitor at this point.
-                            var screen = Screen.ScreenFromRect(new PixelRect(pos->x, pos->y, pos->cx, pos->cy))
+                            var screen = Screen.ScreenFromRect(placement.NormalPosition.ToPixelRect())
                                 ?? Screen.ScreenFromHwnd(Hwnd, MONITOR.MONITOR_DEFAULTTONEAREST);
 
                             if (screen is not null)
@@ -873,6 +868,9 @@ namespace Avalonia.Win32
                 case WindowsMessage.WM_DISPLAYCHANGE:
                     {
                         Screen?.OnChanged();
+
+                        Win32Platform.UpdateTimerFps();
+
                         return IntPtr.Zero;
                     }
 
@@ -1312,7 +1310,7 @@ namespace Avalonia.Win32
             var isTouch = info.pointerType == PointerInputType.PT_TOUCH;
             if (info.pointerFlags.HasFlag(PointerFlags.POINTER_FLAG_CANCELED))
             {
-                return isTouch ? RawPointerEventType.TouchCancel : RawPointerEventType.LeaveWindow;
+                return isTouch ? RawPointerEventType.TouchCancel : RawPointerEventType.CancelCapture;
             }
 
             var eventType = ToEventType(info.ButtonChangeType, isTouch);
@@ -1362,13 +1360,33 @@ namespace Avalonia.Win32
             Imm32InputMethod.Current.SetLanguageAndWindow(this, Hwnd, hkl);
         }
 
+        // GetPointerDeviceRects is part of the WM_POINTER API (Windows 8+) but is not implemented
+        // by Wine/Proton. Probe once and fall back to the integer pixel location when missing,
+        // otherwise the P/Invoke throws EntryPointNotFoundException for every pointer message.
+        // See https://github.com/AvaloniaUI/Avalonia/issues/21081.
+        private static readonly bool s_isGetPointerDeviceRectsAvailable = ProbeGetPointerDeviceRects();
+
+        private static bool ProbeGetPointerDeviceRects()
+        {
+            var user32 = LoadLibrary("user32.dll");
+            return user32 != IntPtr.Zero
+                && GetProcAddress(user32, nameof(GetPointerDeviceRects)) != IntPtr.Zero;
+        }
+
         /// <summary>
-        /// Get the location of the pointer in himetric units.
+        /// Get the location of the pointer in screen coordinates with HIMETRIC sub-pixel precision
+        /// when supported, falling back to the integer pixel location on platforms that do not
+        /// implement <c>GetPointerDeviceRects</c> (e.g. Wine/Proton).
         /// </summary>
         /// <param name="info">The pointer info.</param>
-        /// <returns>The location of the pointer in himetric units.</returns>
+        /// <returns>The pointer location in screen pixels.</returns>
         private Point GetHimetricLocation(POINTER_INFO info)
         {
+            if (!s_isGetPointerDeviceRectsAvailable)
+            {
+                return new Point(info.ptPixelLocationX, info.ptPixelLocationY);
+            }
+
             GetPointerDeviceRects(info.sourceDevice, out var pointerDeviceRect, out var displayRect);
             var himetricLocation = new Point(
                 info.ptHimetricLocationRawX * displayRect.Width / (double)pointerDeviceRect.Width + displayRect.left,
@@ -1385,6 +1403,8 @@ namespace Avalonia.Win32
         }
 
         private static int HighWord(int param) => param >> 16;
+
+        private static SysCommands GetSysCommand(IntPtr wParam) => (SysCommands)(ToInt32(wParam) & 0xfff0);
 
         private Point DipFromLParam(IntPtr lParam)
         {

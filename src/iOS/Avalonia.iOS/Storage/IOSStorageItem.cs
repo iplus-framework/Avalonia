@@ -271,10 +271,7 @@ internal sealed class IOSStorageFolder : IOSStorageItem, IStorageBookmarkFolder
     {
         try
         {
-            if (!SecurityScopedAncestorUrl.StartAccessingSecurityScopedResource())
-            {
-                return Task.FromResult<IStorageFile?>(null);
-            }
+            SecurityScopedAncestorUrl.StartAccessingSecurityScopedResource();
 
             var path = System.IO.Path.Combine(FilePath, name);
             NSFileAttributes? attributes = null;
@@ -299,7 +296,7 @@ internal sealed class IOSStorageFolder : IOSStorageItem, IStorageBookmarkFolder
 
             var path = System.IO.Path.Combine(FilePath, name);
             NSFileAttributes? attributes = null;
-            if (NSFileManager.DefaultManager.CreateDirectory(path, false, attributes, out var error))
+            if (NSFileManager.DefaultManager.CreateDirectory(path, true, attributes, out var error))
             {
                 return Task.FromResult<IStorageFolder?>(new IOSStorageFolder(new NSUrl(path, true), SecurityScopedAncestorUrl));
             }

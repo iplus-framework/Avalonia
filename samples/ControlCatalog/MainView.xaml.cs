@@ -2,18 +2,14 @@ using System;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
-using Avalonia.Media.Immutable;
+using Avalonia.Input;
 using Avalonia.Styling;
-using ControlCatalog.Models;
 using ControlCatalog.ViewModels;
 
 namespace ControlCatalog
 {
     public partial class MainView : DrawerPage
     {
-        private Action? _disposeTransparencySetters;
-
         public MainView()
         {
             InitializeComponent();
@@ -25,6 +21,8 @@ namespace ControlCatalog
         private const double WideBreakpoint = 1008;
         private const double NarrowBreakpoint = 640;
 
+        protected override Type StyleKeyOverride => typeof(MainView);
+
         private void MainView_Loaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             if (DataContext == null)
@@ -32,6 +30,11 @@ namespace ControlCatalog
 
             SizeChanged += OnDrawerSizeChanged;
             UpdateAdaptiveLayout();
+
+            if (Application.Current is { } app)
+            {
+                app.RequestedThemeVariant = ThemeVariant.Default;
+            }
         }
 
         private void MainView_Unloaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -86,59 +89,6 @@ namespace ControlCatalog
             }
         }
 
-        private void Themes_SelectionChanged(object? sender, SelectionChangedEventArgs e)
-        {
-            if (e.AddedItems.Count > 0 && e.AddedItems[0] is CatalogTheme theme)
-            {
-                App.SetCatalogThemes(theme);
-            }
-        }
-
-        private void ThemeVariants_SelectionChanged(object? sender, SelectionChangedEventArgs e)
-        {
-            if (Application.Current is { } app && e.AddedItems.Count > 0 && e.AddedItems[0] is ThemeVariant themeVariant)
-            {
-                app.RequestedThemeVariant = themeVariant;
-            }
-        }
-
-        private void FlowDirection_SelectionChanged(object? sender, SelectionChangedEventArgs e)
-        {
-            if (TopLevel.GetTopLevel(this) is { } topLevel && e.AddedItems.Count > 0 && e.AddedItems[0] is FlowDirection flowDirection)
-            {
-                topLevel.FlowDirection = flowDirection;
-            }
-        }
-
-        private void Decorations_SelectionChanged(object? sender, SelectionChangedEventArgs e)
-        {
-            if (TopLevel.GetTopLevel(this) is Window window && e.AddedItems.Count > 0 && e.AddedItems[0] is WindowDecorations systemDecorations)
-            {
-                window.WindowDecorations = systemDecorations;
-            }
-        }
-
-        private void TransparencyLevels_SelectionChanged(object? sender, SelectionChangedEventArgs e)
-        {
-            _disposeTransparencySetters?.Invoke();
-
-            if (TopLevel.GetTopLevel(this) is { } topLevel && e.AddedItems.Count > 0 && e.AddedItems[0] is WindowTransparencyLevel transparencyLevel)
-            {
-                topLevel.TransparencyLevelHint = [transparencyLevel];
-
-                if (topLevel.ActualTransparencyLevel != WindowTransparencyLevel.None &&
-                    topLevel.ActualTransparencyLevel == transparencyLevel)
-                {
-                    var transparentBrush = new ImmutableSolidColorBrush(Colors.White, 0);
-                    var semiTransparentBrush = new ImmutableSolidColorBrush(Colors.Gray, 0.2);
-                    _disposeTransparencySetters =
-                        (Action)topLevel.SetValue(BackgroundProperty, transparentBrush, Avalonia.Data.BindingPriority.Style)!.Dispose +
-                        SetValue(BackgroundProperty, semiTransparentBrush, Avalonia.Data.BindingPriority.Style)!.Dispose +
-                        SetValue(DrawerPage.DrawerBackgroundProperty, semiTransparentBrush, Avalonia.Data.BindingPriority.Style)!.Dispose;
-                }
-            }
-        }
-
         protected override void OnDataContextChanged(EventArgs e)
         {
             base.OnDataContextChanged(e);
@@ -146,6 +96,8 @@ namespace ControlCatalog
             if (ViewModel != null)
             {
                 ViewModel.Navigator = NavPage;
+
+                ViewModel.NavigateToItem(ViewModel.HomeItem);
             }
         }
 
@@ -161,8 +113,6 @@ namespace ControlCatalog
             UpdateAdaptiveLayout();
 
             var topLevel = TopLevel.GetTopLevel(this)!;
-            if (topLevel is Window window)
-                ViewModel.SelectedDecorationIndex = (int)window.WindowDecorations;
 
             var insets = topLevel.InsetsManager;
             if (insets != null)
@@ -194,8 +144,11 @@ namespace ControlCatalog
                     ViewModel.IsSystemBarVisible = insets.IsSystemBarVisible ?? true;
                 };
             }
+        }
 
-            ViewModel.SelectedPageIndex = 0;
+        private async void AvaloniaIcon_OnTapped(object? sender, TappedEventArgs e)
+        {
+            await TopLevel.GetTopLevel(this)!.Launcher.LaunchUriAsync(new Uri("https://avaloniaui.net/"));
         }
     }
 }

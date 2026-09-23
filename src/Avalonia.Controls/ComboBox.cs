@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls.Metadata;
+using Avalonia.Controls.Platform;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Controls.Templates;
@@ -101,7 +102,7 @@ namespace Avalonia.Controls
             if (template is not null) return template;
             if(obj is ComboBox comboBox && template is null)
             {
-                return comboBox.ItemTemplate;
+                return comboBox.GetEffectiveItemTemplate();
             }
             return template;
         }
@@ -122,6 +123,7 @@ namespace Avalonia.Controls
             ItemsPanelProperty.OverrideDefaultValue<ComboBox>(DefaultPanel);
             FocusableProperty.OverrideDefaultValue<ComboBox>(true);
             IsTextSearchEnabledProperty.OverrideDefaultValue<ComboBox>(true);
+            PlatformFeedback.FeedbackTypeProperty.OverrideDefaultValue<ComboBox>(FeedbackType.Auto);
         }
 
         /// <summary>
@@ -365,6 +367,7 @@ namespace Avalonia.Controls
                 if (_popup?.IsInsidePopup(source) != true && PseudoClasses.Contains(pcPressed))
                 {
                     SetCurrentValue(IsDropDownOpenProperty, !IsDropDownOpen);
+                    this.PerformFeedback(FeedbackAction.Click);
                     e.Handled = true;
                 }
             }
@@ -422,6 +425,10 @@ namespace Avalonia.Controls
             {
                 CoerceValue(SelectionBoxItemTemplateProperty);
             }
+            else if (change.Property == SelectionBoxItemTemplateProperty)
+            {
+                UpdateSelectionBoxItem(SelectedItem);
+            }
             else if (change.Property == IsEditableProperty && change.GetNewValue<bool>())
             {
                 UpdateInputTextFromSelection(SelectedItem);
@@ -441,6 +448,10 @@ namespace Avalonia.Controls
             else if (change.Property == DisplayMemberBindingProperty)
             {
                 HandleTextValueBindingValueChanged(null, change);
+                // The base handler invalidates the cached template: run it before coercing.
+                base.OnPropertyChanged(change);
+                CoerceValue(SelectionBoxItemTemplateProperty);
+                return;
             }
             else if (change.Property == TextSearch.TextBindingProperty)
             {
@@ -516,13 +527,8 @@ namespace Avalonia.Controls
             var selectedIndex = SelectedIndex;
             if (IsDropDownOpen && selectedIndex != -1)
             {
+                ScrollIntoView(selectedIndex);
                 var container = ContainerFromIndex(selectedIndex);
-
-                if (container == null && SelectedIndex != -1)
-                {
-                    ScrollIntoView(Selection.SelectedIndex);
-                    container = ContainerFromIndex(selectedIndex);
-                }
 
                 if (container != null && CanFocus(container))
                 {
@@ -535,18 +541,24 @@ namespace Avalonia.Controls
 
         private void UpdateSelectionBoxItem(object? item)
         {
-            var contentControl = item as IContentControl;
-
-            if (contentControl != null)
+            if (item is IContentControl contentControl)
             {
                 item = contentControl.Content;
             }
 
-            var control = item as Control;
-
-            if (control != null)
+            if (item is null)
             {
-                if (VisualRoot is object)
+                SelectionBoxItem = null;
+                return;
+            }
+
+            if (SelectionBoxItemTemplate is not null)
+            {
+                SelectionBoxItem = item;
+            }
+            else if (item is Control control)
+            {
+                if (VisualRoot is not null)
                 {
                     control.Measure(Size.Infinity);
 
@@ -567,22 +579,7 @@ namespace Avalonia.Controls
             }
             else
             {
-                if (item is not null && ItemTemplate is null && SelectionBoxItemTemplate is null && DisplayMemberBinding is { } binding)
-                {
-                    var template = new FuncDataTemplate<object?>((_, _) =>
-                    new TextBlock
-                    {
-                        [TextBlock.DataContextProperty] = item,
-                        [!TextBlock.TextProperty] = binding,
-                    });
-                    var text = template.Build(item);
-                    SelectionBoxItem = text;
-                }
-                else
-                {
-                    SelectionBoxItem = item;
-                }
-                
+                SelectionBoxItem = item;
             }
         }
 

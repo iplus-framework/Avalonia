@@ -160,7 +160,10 @@ namespace Avalonia.Media
         public Rect Bounds => new Rect(new Point(BaselineOrigin.X, 0),
             new Size(Metrics.WidthIncludingTrailingWhitespace, Metrics.Height));
 
-        public Rect InkBounds => PlatformImpl.Item.Bounds;
+        /// <summary>
+        ///     Gets the conservative bounding box of the inked area of the <see cref="GlyphRun"/>.
+        /// </summary>
+        public Rect InkBounds => _glyphInfos.Count == 0 ? default : PlatformImpl.Item.Bounds;
 
         /// <summary>
         /// 
@@ -246,6 +249,11 @@ namespace Avalonia.Media
         /// </returns>
         public double GetDistanceFromCharacterHit(CharacterHit characterHit)
         {
+            if (_glyphInfos.Count == 0)
+            {
+                return 0;
+            }
+
             var characterIndex = characterHit.FirstCharacterIndex + characterHit.TrailingLength;
             var isTrailingHit = characterHit.TrailingLength > 0;
 
@@ -473,6 +481,11 @@ namespace Avalonia.Media
         /// </returns>
         public int FindGlyphIndex(int characterIndex)
         {
+            if (_glyphInfos.Count == 0)
+            {
+                return 0;
+            }
+
             if (_hasOneCharPerCluster)
             {
                 return characterIndex;
@@ -558,6 +571,14 @@ namespace Avalonia.Media
         public CharacterHit FindNearestCharacterHit(int index, out double width)
         {
             width = 0.0;
+
+            // A run can hold characters and no glyphs at all - a line break in a font that gives the
+            // shaper no way to hide it shapes to nothing. There is no cluster to snap to, and the
+            // whole run sits at one position, so treat it as a single zero-width cluster.
+            if (_glyphInfos.Count == 0)
+            {
+                return new CharacterHit(Metrics.FirstCluster, _characters.Length);
+            }
 
             var glyphIndex = FindGlyphIndex(index);
 
@@ -684,15 +705,26 @@ namespace Avalonia.Media
             }
 
             var height = GlyphTypeface.Metrics.LineSpacing * Scale;
-            var widthIncludingTrailingWhitespace = 0d;
 
             var trailingWhitespaceLength = GetTrailingWhitespaceLength(isReversed, out var newLineLength, out var glyphCount);
 
-            for (var index = 0; index < _glyphInfos.Count; index++)
-            {
-                var advance = _glyphInfos[index].GlyphAdvance;
+            // when our glyph source is a ShapedBuffer (the common case every
+            // shape result flows through one), it already maintains a cluster-width
+            // prefix sum we can read in O(1) instead of summing all advances here.
+            double widthIncludingTrailingWhitespace;
 
-                widthIncludingTrailingWhitespace += advance;
+            if (_glyphInfos is TextFormatting.ShapedBuffer shapedBuffer)
+            {
+                widthIncludingTrailingWhitespace = shapedBuffer.TotalGlyphAdvance;
+            }
+            else
+            {
+                widthIncludingTrailingWhitespace = 0d;
+
+                for (var index = 0; index < _glyphInfos.Count; index++)
+                {
+                    widthIncludingTrailingWhitespace += _glyphInfos[index].GlyphAdvance;
+                }
             }
 
             var width = widthIncludingTrailingWhitespace;

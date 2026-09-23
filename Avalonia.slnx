@@ -22,17 +22,23 @@
     <Project Path="src/Avalonia.FreeDesktop/Avalonia.FreeDesktop.csproj" />
     <Project Path="src/Avalonia.X11/Avalonia.X11.csproj" />
     <Project Path="src/Linux/Avalonia.LinuxFramebuffer/Avalonia.LinuxFramebuffer.csproj" />
+    <Project Path="src/Avalonia.Wayland/Avalonia.Wayland.csproj" />
   </Folder>
   <Folder Name="/Markup/">
     <Project Path="src/Markup/Avalonia.Markup.Xaml.Loader/Avalonia.Markup.Xaml.Loader.csproj" />
     <Project Path="src/Markup/Avalonia.Markup.Xaml/Avalonia.Markup.Xaml.csproj" />
     <Project Path="src/Markup/Avalonia.Markup/Avalonia.Markup.csproj" />
   </Folder>
+  <Folder Name="/Native/">
+    <Project Path="native/Avalonia.Native/Avalonia.Native.macOS.proj" Type="C#" />
+    <Project Path="src/Avalonia.Native/Avalonia.Native.csproj" />
+  </Folder>
   <Folder Name="/Packages/">
     <Project Path="packages/Avalonia/Avalonia.csproj" />
     <Project Path="src/Avalonia.Desktop/Avalonia.Desktop.csproj" />
   </Folder>
   <Folder Name="/Props/">
+    <File Path="build/AvaloniaNative.props" />
     <File Path="build/AvaloniaPublicKey.props" />
     <File Path="build/Base.props" />
     <File Path="build/CoreLibraries.props" />
@@ -65,6 +71,10 @@
     <Project Path="samples/ControlCatalog.MacCatalyst/ControlCatalog.MacCatalyst.csproj" />
     <Project Path="samples/ControlCatalog.tvOS/ControlCatalog.tvOS.csproj" />
     <Project Path="samples/ControlCatalog/ControlCatalog.csproj" />
+    <Project Path="samples/ControlGallery.WinUI/ControlGallery.WinUI.csproj">
+      <Platform Project="x64" />
+      <Deploy />
+    </Project>
     <Project Path="samples/Generators.Sandbox/Generators.Sandbox.csproj" />
     <Project Path="samples/GpuInterop/GpuInterop.csproj" />
     <Project Path="samples/IntegrationTestApp/IntegrationTestApp.csproj" />
@@ -84,6 +94,10 @@
     <Project Path="samples/SingleProjectSandbox/SingleProjectSandbox.csproj" />
     <Project Path="samples/TextTestApp/TextTestApp.csproj" />
     <Project Path="samples/VirtualizationDemo/VirtualizationDemo.csproj" />
+    <Project Path="samples/WinUIEmbedSample/WinUIEmbedSample.csproj">
+      <Platform Project="x64" />
+      <Deploy />
+    </Project>
     <Project Path="samples/XEmbedSample/XEmbedSample.csproj" />
   </Folder>
   <Folder Name="/Samples/Interop/">
@@ -108,7 +122,6 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="azure-pipelines-integrationtests.yml" />
-    <File Path="azure-pipelines.yml" />
     <File Path="CODE_OF_CONDUCT.md" />
     <File Path="CONTRIBUTING.md" />
     <File Path="Directory.Build.props" />
@@ -128,6 +141,7 @@
     <File Path="build/UnitTests.NetCore.targets" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/Avalonia.Analyzers.Tests/Avalonia.Analyzers.Tests.csproj" />
     <Project Path="tests/Avalonia.Base.UnitTests/Avalonia.Base.UnitTests.csproj" />
     <Project Path="tests/Avalonia.Benchmarks/Avalonia.Benchmarks.csproj" />
     <Project Path="tests/Avalonia.Build.Tasks.UnitTest/Avalonia.Build.Tasks.UnitTest.csproj" />
@@ -147,7 +161,9 @@
     <Project Path="tests/Avalonia.RenderTests.WpfCompare/Avalonia.RenderTests.WpfCompare.csproj" />
     <Project Path="tests/Avalonia.Skia.RenderTests/Avalonia.Skia.RenderTests.csproj" />
     <Project Path="tests/Avalonia.Skia.UnitTests/Avalonia.Skia.UnitTests.csproj" />
+    <Project Path="tests/Avalonia.Themes.UnitTests/Avalonia.Themes.UnitTests.csproj" />
     <Project Path="tests/Avalonia.UnitTests/Avalonia.UnitTests.csproj" />
+    <Project Path="tests/Avalonia.Wayland.UnitTests/Avalonia.Wayland.UnitTests.csproj" />
   </Folder>
   <Folder Name="/Tests/TestFiles/" />
   <Folder Name="/Tests/TestFiles/BuildTasks/">
@@ -170,6 +186,7 @@
     <Project Path="src/tools/Avalonia.DBus.Generators/Avalonia.DBus.Generators.csproj" />
     <Project Path="src/tools/Avalonia.Designer.HostApp/Avalonia.Designer.HostApp.csproj" />
     <Project Path="src/tools/Avalonia.Generators/Avalonia.Generators.csproj" />
+    <Project Path="src/tools/Avalonia.UnicodeTrieGenerator/Avalonia.UnicodeTrieGenerator.csproj" />
     <Project Path="src/tools/DevAnalyzers/DevAnalyzers.csproj" />
     <Project Path="src/tools/DevGenerators/DevGenerators.csproj" />
   </Folder>
@@ -177,6 +194,7 @@
     <Project Path="src/Windows/Avalonia.Win32.Automation/Avalonia.Win32.Automation.csproj" />
     <Project Path="src/Windows/Avalonia.Win32.Interoperability/Avalonia.Win32.Interoperability.csproj" />
     <Project Path="src/Windows/Avalonia.Win32/Avalonia.Win32.csproj" />
+    <Project Path="src/Windows/Avalonia.WinUI/Avalonia.WinUI.csproj" />
   </Folder>
   <Project Path="nukebuild/_build.csproj">
     <Build Project="false" />
@@ -190,7 +208,6 @@
   <Project Path="src/Avalonia.Fonts.Inter/Avalonia.Fonts.Inter.csproj" />
   <Project Path="src/Avalonia.Metal/Avalonia.Metal.csproj" />
   <Project Path="src/Avalonia.MicroCom/Avalonia.MicroCom.csproj" />
-  <Project Path="src/Avalonia.Native/Avalonia.Native.csproj" />
   <Project Path="src/Avalonia.OpenGL/Avalonia.OpenGL.csproj" />
   <Project Path="src/Avalonia.Remote.Protocol/Avalonia.Remote.Protocol.csproj" />
   <Project Path="src/Avalonia.Vulkan/Avalonia.Vulkan.csproj" />

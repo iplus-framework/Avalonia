@@ -80,7 +80,22 @@ namespace Avalonia.Input
 
             if (_focusRoot?.GetValue(FocusedElementProperty) is { } restore && restore != Current)
             {
-                return FocusCore(keyboardDevice, restore, method, keyModifiers);
+                if (!CanFocus(restore))
+                {
+                    // Previous effective focus is no longer part of the focus root's visual tree. We clear the focused element
+                    _focusRoot.ClearValue(FocusedElementProperty);
+
+                    if (Current != null && GetFocusScope(Current) != _focusRoot)
+                    {
+                        _focusRoot = null;
+
+                        return false;
+                    }
+                }
+                else
+                {
+                    return FocusCore(keyboardDevice, restore, method, keyModifiers);
+                }
             }
 
             _focusRoot = null;
@@ -142,6 +157,9 @@ namespace Avalonia.Input
         [PrivateApi]
         public void SetFocusScope(IFocusScope scope)
         {
+            if (KeyboardDevice.Instance is not { } keyboardDevice)
+                return;
+
             if (GetFocusedElement(scope) is { } focused)
             {
                 Focus(focused);
@@ -152,6 +170,13 @@ namespace Avalonia.Input
                 // control, select a control that the user has specified to have default
                 // focus etc.
                 Focus(scopeElement);
+            }
+            else
+            {
+                // If the scope isn't focusable, make sure we still set it as the current focus root,
+                // otherwise it will be completely ignored
+                _focusRoot = scope as StyledElement;
+                keyboardDevice.SetFocusedElement(null, NavigationMethod.Unspecified, KeyModifiers.None, false);
             }
         }
 
@@ -655,7 +680,7 @@ namespace Avalonia.Input
                     if (IsValidTabStopSearchCandidate(parent) && parent is InputElement p && KeyboardNavigation.GetTabNavigation(p) == KeyboardNavigationMode.Once)
                     {
                         current = parent;
-                        parent = FocusHelpers.GetFocusParent(focused);
+                        parent = FocusHelpers.GetFocusParent(current);
                         if (parent == null)
                             break;
                     }
@@ -742,7 +767,10 @@ namespace Avalonia.Input
                 {
                     if (IsValidTabStopSearchCandidate(current) && current is InputElement c && KeyboardNavigation.GetTabNavigation(c) == KeyboardNavigationMode.Cycle)
                     {
-                        newTabStop = GetFirstFocusableElement(current, current);
+                        // Wrapping backwards inside a Cycle scope lands on the LAST focusable
+                        // element, mirroring the forward wrap (last -> first).
+                        // Matches WinUI: GetLastFocusableElement(pCurrent, pCurrent).
+                        newTabStop = GetLastFocusableElement(current, current);
                         break;
                     }
 
@@ -755,7 +783,7 @@ namespace Avalonia.Input
                         else
                         {
                             current = parent;
-                            parent = FocusHelpers.GetFocusParent(focused);
+                            parent = FocusHelpers.GetFocusParent(current);
                             if (parent == null)
                                 break;
                         }
@@ -793,7 +821,7 @@ namespace Avalonia.Input
                             else
                             {
                                 current = parent;
-                                parent = FocusHelpers.GetFocusParent(focused);
+                                parent = FocusHelpers.GetFocusParent(current);
                                 if (parent == null)
                                     break;
                             }
@@ -918,7 +946,11 @@ namespace Avalonia.Input
                         }
                         else
                         {
-                            if (compareIndexResult < 0 || (((foundCurrent || currentPassed) || compareCurrentForPreviousElement) && compareIndexResult == 0))
+                            // A candidate with an equal tab index is "previous" only while the walk has not
+                            // passed the focused element yet; candidates from a nested container scan
+                            // (compareCurrentForPreviousElement) already enforced the ordering themselves.
+                            // Matches WinUI: (((!bFoundCurrent && !bCurrentPassed) || bCurrentCompare) && ...)
+                            if (compareIndexResult < 0 || (((!foundCurrent && !currentPassed) || compareCurrentForPreviousElement) && compareIndexResult == 0))
                             {
                                 if (newTabStop != null)
                                 {

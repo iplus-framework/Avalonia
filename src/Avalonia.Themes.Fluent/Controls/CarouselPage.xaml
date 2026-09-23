@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:ClassModifier="internal">
   <Design.PreviewWith>
     <Border Width="400" Height="300">
       <CarouselPage>
@@ -14,7 +15,7 @@
   </Design.PreviewWith>
 
   <ControlTheme x:Key="{x:Type CarouselPage}" TargetType="CarouselPage">
-    <Setter Property="Background" Value="{DynamicResource SolidBackgroundFillColorBaseBrush}" />
+    <Setter Property="Background" Value="{DynamicResource SystemControlPageBackgroundAltHighBrush}" />
     <Setter Property="Template">
       <ControlTemplate>
         <Carousel Name="PART_Carousel"
