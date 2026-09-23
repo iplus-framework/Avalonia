@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Avalonia.Collections;
@@ -181,7 +182,9 @@ namespace Avalonia.Controls.ApplicationLifetimes
                         var reason = e.IsOSShutdown ?
                             WindowCloseReason.OSShutdown :
                             WindowCloseReason.ApplicationShutdown;
+                        Trace.WriteLine($"ClassicDesktopStyleApplicationLifetime: closing window={w.GetType().FullName}, title='{w.Title}', reason={reason}, isProgrammatic={isProgrammatic}, ignoreCancel={ignoreCancel}");
                         w.CloseCore(reason, isProgrammatic, ignoreCancel);
+                        Trace.WriteLine($"ClassicDesktopStyleApplicationLifetime: closed window={w.GetType().FullName}, title='{w.Title}'");
                     }
                 }
 
@@ -193,7 +196,16 @@ namespace Avalonia.Controls.ApplicationLifetimes
                 }
 
                 var args = new ControlledApplicationLifetimeExitEventArgs(exitCode);
-                Exit?.Invoke(this, args);
+                var handlers = Exit?.GetInvocationList();
+                if (handlers is { Length: > 0 })
+                {
+                    foreach (var handler in handlers)
+                    {
+                        Trace.WriteLine($"ClassicDesktopStyleApplicationLifetime: invoking Exit handler={handler.Method.DeclaringType?.FullName}.{handler.Method.Name}");
+                        ((EventHandler<ControlledApplicationLifetimeExitEventArgs>)handler).Invoke(this, args);
+                        Trace.WriteLine($"ClassicDesktopStyleApplicationLifetime: completed Exit handler={handler.Method.DeclaringType?.FullName}.{handler.Method.Name}");
+                    }
+                }
                 _exitCode = args.ApplicationExitCode;                
             }
             finally
