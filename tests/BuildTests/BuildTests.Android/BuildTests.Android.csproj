@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia.Android" />
+    <PackageReference Include="iPlus.Avalonia.Android" />
   </ItemGroup>
 
   <Import Project="../IncludeBuildTestsAvaloniaItems.props" />

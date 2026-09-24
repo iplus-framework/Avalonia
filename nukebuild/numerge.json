@@ -2,45 +2,45 @@
   "Packages":
   [
     {
-      "Id": "Avalonia",
+      "Id": "iPlus.Avalonia",
       "MergeAll": true,
-      "Exclude": ["Avalonia.Remote.Protocol"],
+      "Exclude": ["iPlus.Avalonia.Remote.Protocol"],
       "IncomingIncludeAssetsOverride": "",
       "Merge": [
         {
-          "Id": "Avalonia.Build.Tasks",
+          "Id": "iPlus.Avalonia.Build.Tasks",
           "IgnoreMissingFrameworkBinaries": true,
           "DoNotMergeDependencies": true
         },
         {
-          "Id": "Avalonia.Generators",
+          "Id": "iPlus.Avalonia.Generators",
           "IgnoreMissingFrameworkBinaries": true,
           "DoNotMergeDependencies": true
         },
         {
-          "Id": "Avalonia.Analyzers.CSharp",
+          "Id": "iPlus.Avalonia.Analyzers.CSharp",
           "IgnoreMissingFrameworkBinaries": true,
           "DoNotMergeDependencies": true
         },
         {
-          "Id": "Avalonia.Analyzers.VisualBasic",
+          "Id": "iPlus.Avalonia.Analyzers.VisualBasic",
           "IgnoreMissingFrameworkBinaries": true,
           "DoNotMergeDependencies": true
         },
         {
-          "Id": "Avalonia.Analyzers.CodeFixes.CSharp",
+          "Id": "iPlus.Avalonia.Analyzers.CodeFixes.CSharp",
           "IgnoreMissingFrameworkBinaries": true,
           "DoNotMergeDependencies": true
         }
       ]
     },
     {
-      "Id": "Avalonia.Win32",
+      "Id": "iPlus.Avalonia.Win32",
       "MergeAll": false,
       "IncomingIncludeAssetsOverride": "",
       "Merge": [
         {
-          "Id": "Avalonia.Win32.Automation",
+          "Id": "iPlus.Avalonia.Win32.Automation",
           "IgnoreMissingFrameworkBinaries": true,
           "DoNotMergeDependencies": true
         }

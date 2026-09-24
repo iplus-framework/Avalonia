@@ -49,15 +49,15 @@
   </Target>
   
   <ItemGroup>
-    <Content Include="*.props">
-       <Pack>true</Pack>
-       <PackagePath>build\;buildTransitive\</PackagePath>
-    </Content>
-    <Content Include="..\..\src\tools\Avalonia.Generators\Avalonia.Generators.props">
+    <Content Include="iPlus.Avalonia.props">
       <Pack>true</Pack>
       <PackagePath>build\;buildTransitive\</PackagePath>
     </Content>
-    <Content Include="*.targets">
+    <Content Include="..\..\src\tools\Avalonia.Generators\Avalonia.Generators.props">
+      <Pack>true</Pack>
+      <PackagePath>build\Avalonia.Generators.props;buildTransitive\Avalonia.Generators.props</PackagePath>
+    </Content>
+    <Content Include="iPlus.Avalonia.targets">
       <Pack>true</Pack>
       <PackagePath>build\;buildTransitive\</PackagePath>
     </Content>

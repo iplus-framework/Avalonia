@@ -314,7 +314,8 @@ partial class Build : NukeBuild
         .DependsOn(CreateIntermediateNugetPackages)
         .Executes(() =>
         {
-            BuildTasksPatcher.PatchBuildTasksInPackage(Parameters.NugetIntermediateRoot / "Avalonia.Build.Tasks." +
+            // iPlus fork: intermediate package ids are prefixed with "iPlus." (see build/SharedVersion.props).
+            BuildTasksPatcher.PatchBuildTasksInPackage(Parameters.NugetIntermediateRoot / "iPlus.Avalonia.Build.Tasks." +
                                                        Parameters.Version + ".nupkg",
                                                        IlRepackTool);
             var config = Numerge.MergeConfiguration.LoadFile(RootDirectory / "nukebuild" / "numerge.json");
@@ -323,8 +324,8 @@ partial class Build : NukeBuild
                 new NumergeNukeLogger()))
                 throw new Exception("Package merge failed");
             RefAssemblyGenerator.GenerateRefAsmsInPackage(
-                Parameters.NugetRoot / $"Avalonia.{Parameters.Version}.nupkg",
-                Parameters.NugetRoot / $"Avalonia.{Parameters.Version}.snupkg");
+                Parameters.NugetRoot / $"iPlus.Avalonia.{Parameters.Version}.nupkg",
+                Parameters.NugetRoot / $"iPlus.Avalonia.{Parameters.Version}.snupkg");
         });
 
     Target EmbedSbom => _ => _

@@ -7,14 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageVersion Include="Avalonia" Version="[$(AvaloniaVersion)]" />
-    <PackageVersion Include="Avalonia.Android" Version="[$(AvaloniaVersion)]" />
-    <PackageVersion Include="Avalonia.Browser" Version="[$(AvaloniaVersion)]" />
-    <PackageVersion Include="Avalonia.iOS" Version="[$(AvaloniaVersion)]" />
-    <PackageVersion Include="Avalonia.Skia" Version="[$(AvaloniaVersion)]" />
-    <PackageVersion Include="Avalonia.Themes.Fluent" Version="[$(AvaloniaVersion)]" />
-    <PackageVersion Include="Avalonia.Win32" Version="[$(AvaloniaVersion)]" />
-    <PackageVersion Include="Avalonia.X11" Version="[$(AvaloniaVersion)]" />
+    <!-- iPlus fork: packages are published with the "iPlus." prefix (see build/SharedVersion.props). -->
+    <PackageVersion Include="iPlus.Avalonia" Version="[$(AvaloniaVersion)]" />
+    <PackageVersion Include="iPlus.Avalonia.Android" Version="[$(AvaloniaVersion)]" />
+    <PackageVersion Include="iPlus.Avalonia.Browser" Version="[$(AvaloniaVersion)]" />
+    <PackageVersion Include="iPlus.Avalonia.iOS" Version="[$(AvaloniaVersion)]" />
+    <PackageVersion Include="iPlus.Avalonia.Skia" Version="[$(AvaloniaVersion)]" />
+    <PackageVersion Include="iPlus.Avalonia.Themes.Fluent" Version="[$(AvaloniaVersion)]" />
+    <PackageVersion Include="iPlus.Avalonia.Win32" Version="[$(AvaloniaVersion)]" />
+    <PackageVersion Include="iPlus.Avalonia.X11" Version="[$(AvaloniaVersion)]" />
     <PackageVersion Include="FSharp.Core" Version="8.0.403" />
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.13" />
   </ItemGroup>

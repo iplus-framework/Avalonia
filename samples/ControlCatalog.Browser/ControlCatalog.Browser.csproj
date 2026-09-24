@@ -18,6 +18,6 @@
     <ProjectReference Include="../ControlCatalog/ControlCatalog.csproj" />
   </ItemGroup>
 
-  <Import Project="../../src/Browser/Avalonia.Browser/build/Avalonia.Browser.props" />
-  <Import Project="../../src/Browser/Avalonia.Browser/build/Avalonia.Browser.targets" />
+  <Import Project="../../src/Browser/Avalonia.Browser/build/iPlus.Avalonia.Browser.props" />
+  <Import Project="../../src/Browser/Avalonia.Browser/build/iPlus.Avalonia.Browser.targets" />
 </Project>

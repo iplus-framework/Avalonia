@@ -25,11 +25,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="build\Avalonia.Browser.props">
+    <Content Include="build\iPlus.Avalonia.Browser.props">
       <Pack>true</Pack>
       <PackagePath>build/;buildTransitive/;buildMultiTargeting/</PackagePath>
     </Content>
-    <Content Include="build\Avalonia.Browser.targets">
+    <Content Include="build\iPlus.Avalonia.Browser.targets">
       <Pack>true</Pack>
       <PackagePath>build/;buildTransitive/</PackagePath>
     </Content>
@@ -56,7 +56,7 @@
   </Target>
 
   <!--
-    Packed as plain files; build/Avalonia.Browser.targets defines the static web assets in the app.
+    Packed as plain files; build/iPlus.Avalonia.Browser.targets defines the static web assets in the app.
     Added from a target because wwwroot only exists after esbuild runs.
   -->
   <Target Name="IncludeAvaloniaWebAppPackageFiles"

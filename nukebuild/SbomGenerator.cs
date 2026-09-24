@@ -591,7 +591,9 @@ public static class SbomGenerator
 
             var isProduct = productNames.Contains(simpleName)
                 || simpleName.StartsWith("Avalonia.", StringComparison.OrdinalIgnoreCase)
-                || simpleName.Equals("Avalonia", StringComparison.OrdinalIgnoreCase);
+                || simpleName.StartsWith("iPlus.Avalonia.", StringComparison.OrdinalIgnoreCase)
+                || simpleName.Equals("Avalonia", StringComparison.OrdinalIgnoreCase)
+                || simpleName.Equals("iPlus.Avalonia", StringComparison.OrdinalIgnoreCase);
 
             // The package's primary assembly is the root component itself - don't list it as its own subcomponent.
             if (isProduct && simpleName.Equals(finalId, StringComparison.OrdinalIgnoreCase))
