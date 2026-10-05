@@ -61,6 +61,22 @@
       <Pack>true</Pack>
       <PackagePath>build\;buildTransitive\</PackagePath>
     </Content>
+    <Content Include="AvaloniaBuildTasks.props">
+      <Pack>true</Pack>
+      <PackagePath>build\;buildTransitive\</PackagePath>
+    </Content>
+    <Content Include="AvaloniaBuildTasks.targets">
+      <Pack>true</Pack>
+      <PackagePath>build\;buildTransitive\</PackagePath>
+    </Content>
+    <Content Include="AvaloniaPrivateApis.targets">
+      <Pack>true</Pack>
+      <PackagePath>build\;buildTransitive\</PackagePath>
+    </Content>
+    <Content Include="AvaloniaSingleProject.targets">
+      <Pack>true</Pack>
+      <PackagePath>build\;buildTransitive\</PackagePath>
+    </Content>
     <Content Include="AvaloniaItemSchema.xaml">
       <Pack>true</Pack>
       <PackagePath>build\;buildTransitive\</PackagePath>
