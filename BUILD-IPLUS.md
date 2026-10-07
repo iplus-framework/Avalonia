@@ -113,12 +113,22 @@ step is needed. Verify the workload is visible with `dotnet workload list`.
 | Platform | Possible? | Requirement |
 |---|---|---|
 | Linux | ❌ | The `ios` workload is **not available on Linux** (`Workload ID ios isn't supported on this platform`) |
-| Windows | ✅ | `dotnet workload install ios` |
-| macOS | ✅ | `dotnet workload install ios` |
+| Windows | ✅ | `dotnet workload install ios` **and** `dotnet workload install tvos` |
+| macOS | ✅ | `dotnet workload install ios` **and** `dotnet workload install tvos` |
 
 The iOS backend itself is pure C# (rendering comes from Skia/HarfBuzz), but the
 Apple targeting packs only install on Windows/macOS. **Build the iOS package on
 Windows or macOS** — e.g. with `.\build-iplus.ps1 -Version <ver> -PackIOS`.
+
+> ⚠️ **Both workloads are required.** `Avalonia.iOS.csproj` multi-targets
+> `net10.0-ios*` **and** `net10.0-tvos*`, so building it fails with
+> `NETSDK1147: ... Workloads installiert sein: tvos` if only `ios` is
+> installed. Install both:
+>
+> ```powershell
+> dotnet workload install ios
+> dotnet workload install tvos
+> ```
 
 ### macOS Native (`iPlus.Avalonia.Native`)
 
@@ -153,6 +163,10 @@ dylib-less package.
 
 ## Troubleshooting
 
+- **`NETSDK1147: Zum Erstellen dieses Projekts müssen die folgenden Workloads
+  installiert sein: tvos`** (when packing iOS) — the `tvos` workload is
+  missing; `Avalonia.iOS.csproj` also targets `net10.0-tvos*`. Run
+  `dotnet workload install tvos` (see the iOS prerequisites above).
 - **`MSB4181: The "RestoreTask" task returned false but did not log an error`
   on all projects** — usually a stale workload installation after an SDK
   update. Fix with `dotnet workload repair` (or `dotnet workload update`).
