@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Rendering;
-using SixLabors.ImageSharp;
 using Xunit;
 using Avalonia.Platform;
 using System.Threading.Tasks;
@@ -19,8 +18,7 @@ using Avalonia.Skia;
 using Avalonia.Threading;
 using Avalonia.UnitTests;
 using Avalonia.Utilities;
-using SixLabors.ImageSharp.PixelFormats;
-using Image = SixLabors.ImageSharp.Image;
+using SkiaSharp;
 
 namespace Avalonia.Skia.RenderTests
 {
@@ -83,12 +81,12 @@ namespace Avalonia.Skia.RenderTests
         {
             var expectedPath = Path.Combine(OutputPath, testName + ".expected.png");
 
-            using (var expected = Image.Load<Rgba32>(expectedPath))
+            using (var expected = SKBitmap.Decode(expectedPath) ?? throw new InvalidDataException($"Could not decode {expectedPath}."))
             {
                 void Compare(string outputType, double allowedError)
                 {
                     var actualPath = Path.Combine(OutputPath, testName + "." + outputType + ".out.png");
-                    using var actual = Image.Load<Rgba32>(actualPath);
+                    using var actual = SKBitmap.Decode(actualPath) ?? throw new InvalidDataException($"Could not decode {actualPath}.");
                     var error = TestRenderHelper.CompareImages(actual, expected);
                     if (error > allowedError)
                     {

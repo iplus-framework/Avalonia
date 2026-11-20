@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Rendering;
-using SixLabors.ImageSharp;
 using Xunit;
 using Avalonia.Input;
 using Avalonia.Platform;
@@ -20,11 +19,10 @@ using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 using Avalonia.UnitTests;
 using Avalonia.Utilities;
-using SixLabors.ImageSharp.PixelFormats;
-using Image = SixLabors.ImageSharp.Image;
 using Avalonia.Harfbuzz;
 using Avalonia.OpenGL.Egl;
 using Avalonia.Skia;
+using SkiaSharp;
 
 namespace Avalonia.Skia.RenderTests;
 
@@ -195,8 +193,8 @@ static class TestRenderHelper
 
     public static void AssertCompareImages(string actualPath, string expectedPath)
     {
-        using (var expected = Image.Load<Rgba32>(expectedPath))
-        using (var actual = Image.Load<Rgba32>(actualPath))
+        using (var expected = SKBitmap.Decode(expectedPath) ?? throw new InvalidDataException($"Could not decode {expectedPath}."))
+        using (var actual = SKBitmap.Decode(actualPath) ?? throw new InvalidDataException($"Could not decode {actualPath}."))
         {
             double immediateError = TestRenderHelper.CompareImages(actual, expected);
 
@@ -211,7 +209,7 @@ static class TestRenderHelper
     /// Calculates root mean square error for given two images.
     /// Based roughly on ImageMagick implementation to ensure consistency.
     /// </summary>
-    public static double CompareImages(Image<Rgba32> actual, Image<Rgba32> expected)
+    public static double CompareImages(SKBitmap actual, SKBitmap expected)
     {
         if (actual.Width != expected.Width || actual.Height != expected.Height)
         {
@@ -229,12 +227,14 @@ static class TestRenderHelper
                 
             for (var y = 0; y < actual.Height; y++)
             {
-                var expectedAlpha = expected[x, y].A * scale;
-                var actualAlpha = actual[x, y].A * scale;
+                var expectedColor = expected.GetPixel(x, y);
+                var actualColor = actual.GetPixel(x, y);
+                var expectedAlpha = expectedColor.Alpha * scale;
+                var actualAlpha = actualColor.Alpha * scale;
                     
-                var r = scale * (expectedAlpha * expected[x, y].R - actualAlpha * actual[x, y].R);
-                var g = scale * (expectedAlpha * expected[x, y].G - actualAlpha * actual[x, y].G);
-                var b = scale * (expectedAlpha * expected[x, y].B - actualAlpha * actual[x, y].B);
+                var r = scale * (expectedAlpha * expectedColor.Red - actualAlpha * actualColor.Red);
+                var g = scale * (expectedAlpha * expectedColor.Green - actualAlpha * actualColor.Green);
+                var b = scale * (expectedAlpha * expectedColor.Blue - actualAlpha * actualColor.Blue);
                 var a = expectedAlpha - actualAlpha;
 
                 var error = r * r + g * g + b * b + a * a;
